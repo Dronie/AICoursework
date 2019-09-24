@@ -28,6 +28,7 @@
 
 from pacman import Directions
 from game import Agent
+import numpy as np
 import api
 import random
 import game
@@ -141,14 +142,87 @@ class GoWestAgent(Agent):
         
         return api.makeMove(direction, legal)
 
-class HungryAgent(Agent):
+class SurvivalAgent(Agent):
+        # agent that tries to stay as far away form the ghosts as possible
+        
         def getAction(self, state):
-            # Agent that always moves to the nearest peice of food
+
+            # Get legal actions
+            legal = api.legalActions(state)
+
+            # Get location of Pacman
+            pacman = api.whereAmI(state)
+
+            # Get location of Ghosts
+            locGhosts = api.ghosts(state)
+            #print "locGhosts: ", locGhosts
+
+            # Get distance between pacman and the ghosts
+            for i in locGhosts:
+                p_g_dist = util.manhattanDistance(pacman, i)
+
+            # Get distance between ghosts
+            g_g_dist = util.manhattanDistance(locGhosts[0], locGhosts[1])
+            #print "g_g_dist:", g_g_dist
+
+            # Get distance between pacman and first Ghost
+            dist = []
+            dist.append(locGhosts[0][0] - pacman[0])
+            dist.append(locGhosts[0][1] - pacman[1])
+
+            
+            
+
+
 
             return api.makeMove(Directions.STOP, legal)
         
-class SurvivalAgent(Agent):
-    def getAction(self, state):
-        # agent that tries to stay as far away form the ghosts as possible
+class HungryAgent(Agent):
 
-        return api.makeMove(Directions.STOP, legal)
+    def getAction(self, state):
+        # Agent that always moves to the nearest peice of food
+
+        # Initialize direction
+        direction = Directions.STOP
+
+        # Get legal actions
+        legal = api.legalActions(state)
+        print legal
+
+        # Get location of Pacman
+        pacman = api.whereAmI(state)
+        print "pacman", pacman
+
+        # Get locations of all peices of food
+        all_food = api.food(state)
+        #print "all_food", all_food
+
+        # Find closest peice of food
+        dists = []
+        for i in all_food:
+            dists.append(util.manhattanDistance(pacman, i))
+        closest_food = min(dists)
+        
+        closest_index = 0
+        for i in dists:
+            if i == closest_food:
+                closest_index = dists.index(closest_food)
+        
+        closest_food = all_food[closest_index]
+        print "closest_food", closest_food
+
+        if closest_food[0] > pacman[0] and 'East' in legal:
+            direction = Directions.EAST
+        elif closest_food[0] < pacman[0] and 'West' in legal:
+            direction = Directions.WEST
+        elif closest_food[1] > pacman[1] and 'North' in legal:
+            direction = Directions.NORTH
+        elif closest_food[1] < pacman[1] and 'South' in legal:
+            direction = Directions.SOUTH
+        
+        if direction not in legal:
+            direction = Directions.EAST
+
+        
+
+        return api.makeMove(direction, legal)
