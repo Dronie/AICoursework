@@ -28,7 +28,6 @@
 
 from pacman import Directions
 from game import Agent
-import numpy as np
 import api
 import random
 import game
@@ -121,7 +120,6 @@ class SensingAgent(Agent):
         # API to ask Pacman to stay where they are.
         return api.makeMove(Directions.STOP, legal)
 
-
 class GoWestAgent(Agent):
     
     def getAction(self, state):
@@ -170,32 +168,40 @@ class SurvivalAgent(Agent):
             dist.append(locGhosts[0][0] - pacman[0])
             dist.append(locGhosts[0][1] - pacman[1])
 
-            
-            
-
-
-
             return api.makeMove(Directions.STOP, legal)
         
 class HungryAgent(Agent):
 
+    def __init__(self):
+        self.wall_locs = []
+        self.open_space = []
+        self.adjacencies = []
+        self.direction = Directions.STOP
+
     def getAction(self, state):
         # Agent that always moves to the nearest peice of food
 
-        # Initialize direction
-        direction = Directions.STOP
-
         # Get legal actions
         legal = api.legalActions(state)
-        print legal
+        #legal.remove(Directions.STOP)
 
         # Get location of Pacman
         pacman = api.whereAmI(state)
-        print "pacman", pacman
+        
 
         # Get locations of all peices of food
         all_food = api.food(state)
         #print "all_food", all_food
+
+        # Get locations of walls
+        if self.wall_locs == []:
+            self.wall_locs = api.walls(state)
+
+        if self.open_space == []:
+            for i in range(0, self.wall_locs[len(self.wall_locs) - 1][0]):
+                for j in range(0, self.wall_locs[len(self.wall_locs) - 1][1]):
+                    if (i, j) not in self.wall_locs:
+                        self.open_space.append((i, j))
 
         # Find closest peice of food
         dists = []
@@ -209,20 +215,66 @@ class HungryAgent(Agent):
                 closest_index = dists.index(closest_food)
         
         closest_food = all_food[closest_index]
-        print "closest_food", closest_food
+
+        print "Pacman:", pacman, "Closest Pellet:", closest_food
 
         if closest_food[0] > pacman[0] and 'East' in legal:
-            direction = Directions.EAST
+            self.direction = Directions.EAST
+            print "Going East"
         elif closest_food[0] < pacman[0] and 'West' in legal:
-            direction = Directions.WEST
+            self.direction = Directions.WEST
+            print "Going West"
         elif closest_food[1] > pacman[1] and 'North' in legal:
-            direction = Directions.NORTH
+            self.direction = Directions.NORTH
+            print "Going North"
         elif closest_food[1] < pacman[1] and 'South' in legal:
-            direction = Directions.SOUTH
-        
-        if direction not in legal:
-            direction = Directions.EAST
+            self.direction = Directions.SOUTH
+            print "Going South"
+        elif self.direction in legal:
+            return api.makeMove(self.direction, legal)
+        elif len(legal) >= 4:
+            legal.remove(Directions.STOP)
+            pick = random.choice(legal)
+            # Since we changed action, record what we did
+            self.direction = pick
+            return api.makeMove(pick, legal)
+        else:
+            legal.remove(Directions.STOP)
+            pick = random.choice(legal)
+            # Since we changed action, record what we did
+            self.direction = pick
+            return api.makeMove(pick, legal)
 
-        
+        print(len(legal))
 
-        return api.makeMove(direction, legal)
+
+        '''else:
+            if 'North' in legal and 'South' in legal and 'East' not in legal and 'West' not in legal:
+                direction = Directions.SOUTH
+            elif 'East' in legal and random.random() > 0.5:
+                direction = Directions.EAST
+            elif 'West' in legal and random.random() > 0.5:
+                direction = Directions.WEST
+            elif 'North' in legal and random.random() > 0.5:
+                direction = Directions.NORTH
+            elif 'South' in legal and random.random() > 0.5:
+                direction = Directions.SOUTH
+            elif 'South' not in legal and 'North' in legal and 'East' in legal and 'West' in legal:
+                direction = Directions.NORTH'''
+        
+        # TO DO: Implement some kind of pathfinding algorithm: this will make it alot easier
+
+        return api.makeMove(self.direction, legal)
+
+class CornerSeekingAgent(Agent):
+    def __init__(self):
+        self.explored = []
+        self.waypoints = []
+    
+    def getAction(self, state):
+        legal = api.legalActions(state)
+
+        corners = api.corners(state)
+        print(corners)
+
+        return api.makeMove(Directions.STOP, legal)
